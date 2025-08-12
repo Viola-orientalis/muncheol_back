@@ -1,7 +1,8 @@
 .env
 logs/
 vectorstore/
-data/
+data/cleaned
+data/chunks
 __pycache__/
 *.pyc
 *.pyo
