@@ -29,6 +29,9 @@ def ask_rag():
             snippet = ""
         ctxs.append(f"[{i}] {h['filename']} ({h['category']})\n{snippet}")
 
+    # 컨텍스트 블록 문자열 생성 (백슬래시 문제 방지)
+    context_block = "\n\n---\n\n".join(ctxs) if ctxs else "(컨텍스트 없음)"
+
     # 3) chat
     prompt = (
         "당신은 대한민국 법률 전문 챗봇입니다.\n"
@@ -43,12 +46,11 @@ def ask_rag():
         "5. 추측이나 오해를 줄 수 있는 모호한 표현은 사용하지 않습니다.\n"
         "6. 최종 답변은 간결하지만 법률 문서 수준의 정확성을 유지합니다.\n\n"
         "-----\n"
-        f"{'\n\n---\n\n'.join(ctxs) if ctxs else '(컨텍스트 없음)'}\n"
+        + context_block + "\n"
         "-----\n"
         f"질문: {question}"
     )
     answer = chat([{"role": "user", "content": prompt}])
-
 
     return jsonify({"ok": True, "answer": answer, "sources": hits})
 
