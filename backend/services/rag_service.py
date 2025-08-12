@@ -1,9 +1,10 @@
+# backend/services/rag_service.py
 from pathlib import Path
 import json
 import numpy as np
 import faiss
 
-from backend.config.config import VSTORE_DIR, ROOT_DIR
+from backend.config.config import VSTORE_DIR, ROOT_DIR, CHUNKS_DIR
 from backend.utils.logger import get_logger
 
 logger = get_logger("rag_service")
@@ -16,21 +17,62 @@ _metas = None
 _last_mtime = (0, 0)
 
 def resolve_path_for_meta(meta: dict) -> Path:
-    p = Path(meta.get("path", ""))
-    if p.exists():
+    """
+    경로 복원 규칙:
+      1) meta['path']를 우선 사용하되, 백슬래시(\) → 슬래시(/) 표준화 후 절대/상대 모두 검사
+      2) rel_path가 있으면 ROOT_DIR 기준으로 검사
+      3) 표준 위치 fallback:
+         - data/chunks/<category>/<filename>
+         - output/chunks/<category>/<filename> (레거시)
+      4) raw path가 'output/chunks'를 가리키면 'data/chunks'로 치환 시도
+    """
+    raw_path = (meta.get("path") or "").strip()
+    rel = (meta.get("rel_path") or "").strip()
+    category = meta.get("category") or ""
+    filename = meta.get("filename") or ""
+
+    def _norm(p: str) -> Path:
+        if not p:
+            return Path("")
+        p = p.replace("\\", "/").strip()
+        return Path(p)
+
+    # 1) meta.path 시도 (절대 → 상대(ROOT_DIR) 순)
+    p = _norm(raw_path)
+    if p.is_absolute() and p.exists():
         return p
-    rel = meta.get("rel_path")
-    if rel:
-        rp = ROOT_DIR / rel
-        if rp.exists():
+    if str(p):
+        cand = (ROOT_DIR / p).resolve()
+        if cand.exists():
+            return cand
+
+    # 2) rel_path 시도
+    rp = _norm(rel)
+    if str(rp):
+        if rp.is_absolute() and rp.exists():
             return rp
-        try:
-            rp2 = (ROOT_DIR / Path(rel))
-            if rp2.exists():
-                return rp2
-        except Exception:
-            pass
-    return p
+        cand = (ROOT_DIR / rp).resolve()
+        if cand.exists():
+            return cand
+
+    # 3) 표준 fallback: data/chunks, output/chunks
+    if category and filename:
+        cand = (CHUNKS_DIR / category / filename).resolve()
+        if cand.exists():
+            return cand
+        cand2 = (ROOT_DIR / "output" / "chunks" / category / filename).resolve()
+        if cand2.exists():
+            return cand2
+
+    # 4) 레거시 치환: output/chunks → data/chunks
+    if "output/chunks" in raw_path or "output\\chunks" in raw_path:
+        replaced = raw_path.replace("\\", "/").replace("output/chunks", "data/chunks")
+        cand = (ROOT_DIR / _norm(replaced)).resolve()
+        if cand.exists():
+            return cand
+
+    # 마지막: 그래도 못 찾으면 ROOT_DIR 기준으로 반환(존재 X일 수 있음)
+    return (ROOT_DIR / p) if str(p) else ROOT_DIR
 
 def _mtime_pair():
     idx_m = INDEX_PATH.stat().st_mtime if INDEX_PATH.exists() else 0
