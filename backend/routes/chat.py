@@ -8,7 +8,7 @@ bp = Blueprint("chat", __name__)
 
 @bp.route("/api/ask-rag", methods=["POST"])
 def ask_rag():
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or {}
     question = (data.get("question") or "").strip()
     top_k = int(data.get("top_k", 5))
     if not question:
@@ -32,9 +32,15 @@ def ask_rag():
     # 3) chat
     prompt = (
         "다음 컨텍스트를 근거로 질문에 답하세요. 확실치 않으면 '근거 부족'이라고 말하세요.\n\n"
-        + ("\n\n---\n\n".join(ctxs) if ctxs else "(컨텍스트 없음)") +
-        f"\n\n질문: {question}"
+        + ("\n\n---\n\n".join(ctxs) if ctxs else "(컨텍스트 없음)")
+        + f"\n\n질문: {question}"
     )
-    answer = chat([{"role":"user","content": prompt}])
+    answer = chat([{"role": "user", "content": prompt}])
 
     return jsonify({"ok": True, "answer": answer, "sources": hits})
+
+@bp.route("/api/ask", methods=["POST", "OPTIONS"])
+def ask_alias():
+    if request.method == "OPTIONS":
+        return ("", 204)
+    return ask_rag()
