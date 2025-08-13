@@ -1,6 +1,14 @@
 import os, json, re, zipfile
 from pathlib import Path
 from config import RAW_DIR, CLEANED_DIR, ensure_dirs
+import sys
+
+# 프로젝트 루트 경로를 sys.path에 추가
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from backend.config.config import RAW_DIR, CLEANED_DIR, ensure_dirs
+
 
 # zip 파일명에 포함된 키워드로 카테고리 자동 판별
 CATEGORY_KEYWORDS = {
