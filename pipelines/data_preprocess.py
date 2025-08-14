@@ -1,14 +1,15 @@
 import os, json, re, zipfile
 from pathlib import Path
-from config import RAW_DIR, CLEANED_DIR, ensure_dirs
 import sys
 
-# 프로젝트 루트 경로를 sys.path에 추가
+# 0) 프로젝트 루트(P_backend) 경로를 sys.path에 먼저 추가
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT_DIR))
 
+# 1) 백엔드 설정에서 경로 가져오기 (backend/config/config.py에 정의돼 있어야 함)
 from backend.config.config import RAW_DIR, CLEANED_DIR, ensure_dirs
-
+# RAW_DIR = Path("data/raw")
+# CLEANED_DIR = Path("data/cleaned")
 
 # zip 파일명에 포함된 키워드로 카테고리 자동 판별
 CATEGORY_KEYWORDS = {
@@ -59,7 +60,6 @@ def _auto_unzip_grouped():
 
         # 이미 풀려 있으면 스킵(강제 모드 제외)
         if not FORCE_UNZIP and any(out_dir.iterdir()):
-            # 카테고리 폴더 안에 파일이 하나라도 있으면 스킵
             continue
 
         try:
@@ -123,4 +123,3 @@ def run():
 if __name__ == "__main__":
     print("📂 data_preprocess start")
     run()
-
