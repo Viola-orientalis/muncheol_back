@@ -1,4 +1,4 @@
-# P_backend (Final, Reviewed)
+# backend
 
 - Absolute imports (`backend.*`) for robust module resolution
 - Logger writes to `<repo>/logs` (rotating)
