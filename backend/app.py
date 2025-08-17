@@ -13,7 +13,7 @@ def create_app():
     logger = get_logger("app")
 
     # CORS
-    if ALLOWED_ORIGINS == "*":
+    if not ALLOWED_ORIGINS or ALLOWED_ORIGINS == "*":
         CORS(app)
     else:
         origins = [o.strip() for o in ALLOWED_ORIGINS.split(",") if o.strip()]
@@ -22,14 +22,17 @@ def create_app():
     # Blueprints
     app.register_blueprint(chat_bp)
 
-    @app.route("/health")
+    @app.get("/health")
     def health():
         return {"ok": True, "ts": os.getenv("APP_TS", "n/a")}
 
     logger.info("Flask app initialized")
     return app
 
+# WSGI 엔트리
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+    # 개발용만 True, 운영은 False
+    debug = os.getenv("DEBUG", "false").lower() == "true"
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=debug)
